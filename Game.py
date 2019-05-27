@@ -38,7 +38,7 @@ class planet:
         #Resources
         self.metal = [300,0]
         self.no_metal = [300,0]
-        self.gas = [200,0]
+        self.gas = [1_000,0]
         self.energy = 0
         #Limits
         self.metal_limit = 1000
