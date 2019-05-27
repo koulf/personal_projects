@@ -15,7 +15,6 @@ import threading
 galaxy = []
 available = []
 missions = []
-alerts = []
 
 users =[]
 passwords = []
@@ -108,6 +107,7 @@ class user:
         self.password = password
         self.points = 0
         self.planets = []
+        self.alerts = []
         self.weapon = research(0, 100, 100, 100)
         self.structure = research(0, 200, 200, 200)
         self.motor = research(0, 500, 500, 500)
@@ -599,9 +599,9 @@ def start(user):
                 print(p.fleet)
             elif a == 5:
                 print("...Alerts...\n")
-                for i in alerts:
+                for i in user.alerts:
                     print(i)
-                del alerts[:len(alerts)]
+                del user.alerts[:len(alerts)]
             else:
                 print("Invalid input")
         elif a == 6:
