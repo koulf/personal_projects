@@ -2,12 +2,14 @@ import time
 import random
 import os
 import threading
+import platform
 
 
 
 #PENDING TASKS
  #Decide whether or not to add motors in speed attribute
  #Decide whether or not to add ships as stored objects, because of the cargo in the missions
+
 
 
 #Class variables
@@ -51,6 +53,7 @@ class planet:
         self.no_metal_repository = building(0, 500, 500, 0)
         self.gas_tank = building(0, 500, 500, 0)
         self.shipyard = building(0, 1000, 1000, 0)
+        #Fleet
         self.fleet = {"Battleship":0, "Hunter":0, "Colonizer":0, "Spy":0, "Cargoship":0}
     def __repr__(self):
     	return "(" + str(self.planetType) + ", " + str(self.user) + ", " + str(self.name) + ")"
@@ -118,36 +121,37 @@ class user:
     def __repr__(self):
         return self.username
 
+    def __eq__(self, other):
+        return self.username == other.username
+
 class mission(threading.Thread):
-    def __init__(self, duration, comeback, c1, c2, planet, fleet):
+    def __init__(self, duration, missionType, c1, c2, planet, fleet):
         threading.Thread.__init__(self)
         self.duration = duration
-        self.comeback = comeback
+        self.missionType = missionType
         self.c1 = c1
         self.c2 = c2
         self.planet = planet
         self.fleet = fleet
     
     def run(self):
-        if self.comeback:
-            alerts.append("Coming soon")
-        else:
-            if galaxy[self.c1][self.c2].user == "-":
-                while self.duration > 0:
-                    self.duration -= 1
-                    time.sleep(1)
-                if galaxy[self.c1][self.c2].user == "-":
-                    available.remove([self.c1, self.c2])
-                    galaxy[self.c1][self.c2].reclaim(self.planet.user)
-                    self.planet.user.reclaim(galaxy[self.c1][self.c2])
-                    self.fleet[2] -= 1
-                    for i in range(len(self.fleet)):
-                        galaxy[self.c1][self.c2].fleet[list(self.planet.fleet.keys())[i]] += self.fleet[i]
-                    alerts.append("Planet taken")
-                else:
-                    alerts.append("Planet was taken")
-            else:
-                alerts.append("Coming soon")
+        if self.missionType == "Attack":
+            self.planet.user.alerts.append("Coming soon")
+        elif self.missionType == "Transport":
+            self.planet.user.alerts.append("Coming soon")
+        elif self.missionType == "Colonize":
+            while self.duration > 0:
+                self.duration -= 1
+                time.sleep(1)
+            available.remove([self.c1, self.c2])
+            galaxy[self.c1][self.c2].reclaim(self.planet.user)
+            self.planet.user.reclaim(galaxy[self.c1][self.c2])
+            self.fleet[2] -= 1
+            for i in range(len(self.fleet)):
+                galaxy[self.c1][self.c2].fleet[list(self.planet.fleet.keys())[i]] += self.fleet[i]
+            self.planet.user.alerts.append("Planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ") taken")
+        elif self.missionType == "Spy":
+            self.planet.user.alerts.append("Coming soon")
         missions.remove(self)
 
 #-------------------------------------------------------------------------------------
@@ -270,26 +274,29 @@ def do_research(planet, research):
 def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet):
     _, t, _, _, balance3 = resources(planet)
     if balance3 >= gasCost:
-        if missionType == "Attack":
-            print("Coming soon")
+        if missionType == "Attack" or missionType == "Spy":
+            if galaxy[c1][c2].user == "-" or galaxy[c1][c2].user == planet.user:
+                print("Invalid objective")
+                return
         elif missionType == "Transport":
-            print("Coming soon")
-        elif missionType == "Colonize":
             if galaxy[c1][c2].user == "-":
-                if fleet[2] >= 1:
-                    planet.gas[0] = balance3 - gasCost
-                    planet.gas[1] = t
-                    for i in range(len(fleet)):
-                        planet.fleet[list(planet.fleet.keys())[i]] -= fleet[i]
-                    missions.append(mission(duration, False, c1, c2, planet, fleet))
-                    missions[len(missions)-1].start()
-                    print("Mission started")
-                else:
-                    print("U need to send a colonizer")
-            else:
+                print("Invalid objective")
+                return
+        elif missionType == "Colonize":
+            if galaxy[c1][c2].user != "-":
                 print("Planet occupated")
-        elif missionType == "Spy":
-            print("Coming soon")
+                return
+            elif fleet[2] == 0:
+                print("U need to send a colonizer")
+                return
+        #Preparations for mission
+        planet.gas[0] = balance3 - gasCost
+        planet.gas[1] = t
+        for i in range(len(fleet)):
+            planet.fleet[list(planet.fleet.keys())[i]] -= fleet[i]
+        missions.append(mission(duration, missionType, c1, c2, planet, fleet))
+        missions[len(missions)-1].start()
+        print("Mission started")
     else:
         print("Insufficient gas")
 
@@ -627,9 +634,9 @@ def start(user):
 
 #Auxiliar functions
 def clear():
-    global cl
+    global cl, clr
     if cl:
-        os.system('cls')
+        os.system(clr)
 
 def enter():
     try:
@@ -660,8 +667,17 @@ spy = ship("Spy", 0, 500, 12, 0, 3_000, 0, 1_000)
 cargoship = ship("Cargoship", 100, 5_000, .2, 15_000, 2_000, 2_000, 2_000)
 ships = [battleship, hunter, colonizer, cargoship, spy]
 cl = False
+clr = platform.system()
+print("U wanna be refreshing the screen? [0] yes | [\"whatever\"] no")
 if input() == "0":
     cl = True
+    if clr == "Linux":
+        clr = "clear"
+    elif clr == "Windows":
+        clr = "cls"
+    else:
+        print("Buuuuh, what a system")
+        cl =False
 start(u)
 
 #-------------------------------------------------------------------------------------
