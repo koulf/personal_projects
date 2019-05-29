@@ -38,7 +38,7 @@ class planet:
         #Resources
         self.metal = [300,0]
         self.no_metal = [300,0]
-        self.gas = [1_000,0]
+        self.gas = [200,0]
         self.energy = 0
         #Limits
         self.metal_limit = 1000
@@ -133,12 +133,15 @@ class mission(threading.Thread):
         self.c2 = c2
         self.planet = planet
         self.fleet = fleet
+        self.first = 0
     
     def run(self):
         if self.missionType == "Attack":
             self.planet.user.alerts.append("Coming soon")
         elif self.missionType == "Transport":
-            self.planet.user.alerts.append("Coming soon")
+            while self.duration > 0:
+                self.duration -= 1
+                time.sleep(1)
         elif self.missionType == "Colonize":
             while self.duration > 0:
                 self.duration -= 1
