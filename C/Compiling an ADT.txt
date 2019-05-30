@@ -1,0 +1,3 @@
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -o "o file1" "c file1" 
+gcc -O0 -g3 -Wall -c -fmessage-length=0 -o "o file2" "c file2"
+gcc -o "exe file" "o file1" "o file2"
