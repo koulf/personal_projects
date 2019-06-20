@@ -36,25 +36,25 @@ class planet:
         self.coordinates = [s, p]
         self.user = "-"
         #Resources
-        self.metal = [300,0]
-        self.no_metal = [300,0]
-        self.gas = [200,0]
+        self.metal = [1000,0]
+        self.no_metal = [1000,0]
+        self.gas = [1000,0]
         self.energy = 0
         #Limits
         self.metal_limit = 1000
         self.no_metal_limit = 1000
         self.gas_limit = 1000
         #Buildings
-        self.metal_mine = building(0, 100, 100, 0)
-        self.no_metal_mine = building(0, 100, 100, 0)
-        self.gas_refinery = building(0, 100, 100, 0)
-        self.power_plant = building(0, 100, 100, 0)
-        self.metal_repository = building(0, 500, 500, 0)
-        self.no_metal_repository = building(0, 500, 500, 0)
-        self.gas_tank = building(0, 500, 500, 0)
-        self.shipyard = building(0, 1000, 1000, 0)
+        self.metal_mine = building(100, 100)
+        self.no_metal_mine = building(100, 100)
+        self.gas_refinery = building(100, 100)
+        self.power_plant = building(100, 100)
+        self.metal_repository = building(500, 500)
+        self.no_metal_repository = building(500, 500)
+        self.gas_tank = building(500, 500)
+        self.shipyard = building(1000, 1000)
         #Fleet
-        self.fleet = {"Battleship":0, "Hunter":0, "Colonizer":0, "Spy":0, "Cargoship":0}
+        self.fleet = {"Battleship":0, "Hunter":0, "Colonizer":1, "Spy":0, "Cargoship":0}
     def __repr__(self):
     	return "(" + str(self.planetType) + ", " + str(self.user) + ", " + str(self.name) + ")"
     def reclaim(self, user):
@@ -69,19 +69,19 @@ class planet:
         self.name = name
 
 class building:
-    def __init__(self, level, metalCost, nonmetalCost, powerCost):
-        self.level = level
+    def __init__(self, metalCost, nonmetalCost):
+        self.level = 0
         self.metal_cost = metalCost
         self.no_metal_cost = nonmetalCost
-        self.power_cost = powerCost
+        self.power_cost = 0
     def upgrade(self):
         self.level += 1
         self.metal_cost *= 2
         self.no_metal_cost *= 2
 
 class research:
-    def __init__(self, level, metalCost, nonmetalCost, gasCost):
-        self.level = level
+    def __init__(self, metalCost, nonmetalCost, gasCost):
+        self.level = 0
         self.metal_cost = metalCost
         self.no_metal_cost = nonmetalCost
         self.gas_cost = gasCost
@@ -111,11 +111,11 @@ class user:
         self.points = 0
         self.planets = []
         self.alerts = []
-        self.weapon = research(0, 100, 100, 100)
-        self.structure = research(0, 200, 200, 200)
-        self.motor = research(0, 500, 500, 500)
-        self.colonize = research(0, 20_000, 20_000, 10_000)
-        self.spying = research(0, 5_000, 5_000, 5_000)
+        self.weapon = research(100, 100, 100)
+        self.structure = research(200, 200, 200)
+        self.motor = research(500, 500, 500)
+        self.colonize = research(20_000, 20_000, 10_000)
+        self.spying = research(5_000, 5_000, 5_000)
     def reclaim(self, n):
     	self.planets.append(n)
     def __repr__(self):
@@ -179,6 +179,7 @@ def save():
 def regenerate_universe(g, u , p):
     #PENDING FUNCTION
     l = list(map(int, input().rstrip().split()))
+    print(l)
 
 def rand_assign(user):
     pc = random.choice(available)
@@ -187,7 +188,7 @@ def rand_assign(user):
     user.reclaim(galaxy[pc[0]][pc[1]])
 
 def build(planet, building):
-    f, t, balance, balance2, balance3 = resources(planet)
+    t, balance, balance2, balance3 = resources(planet)
     if balance >= building.metal_cost:
         if balance2 >= building.no_metal_cost:
             planet.metal[0] = balance - building.metal_cost
@@ -231,7 +232,7 @@ def build_fleet(planet, user, ship, amount):
     elif ship.name == "Cargoship" and (planet.shipyard.level < 3 or user.structure.level < 4 or user.motor.level < 3):
         print("Unfulfilled requirement")
     else:
-        f, t, balance, balance2, balance3 = resources(planet)
+        t, balance, balance2, balance3 = resources(planet)
         if balance >= (ship.metal_cost * amount):
             if balance2 >= (ship.no_metal_cost * amount):
                 if balance3 >= (ship.gas_cost * amount):
@@ -249,7 +250,7 @@ def build_fleet(planet, user, ship, amount):
             print("Insufficient metal")
 
 def show(planet):
-    f, t, balance, balance2, balance3 = resources(planet)
+    _, balance, balance2, balance3 = resources(planet)
     print("Metal = " + str(balance) + "/" + str(planet.metal_limit) +
           " | No-metal = " + str(balance2) + "/" + str(planet.no_metal_limit) +
           " | Gas = " + str(balance3) + "/" + str(planet.gas_limit) +
@@ -257,7 +258,7 @@ def show(planet):
           "/" + str(planet.energy))
 
 def do_research(planet, research):
-    f, t, balance, balance2, balance3 = resources(planet)
+    t, balance, balance2, balance3 = resources(planet)
     if balance >= research.metal_cost:
         if balance2 >= research.no_metal_cost:
             if balance3 >= research.gas_cost:
@@ -275,7 +276,7 @@ def do_research(planet, research):
         print("Insufficient metal")
 
 def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet):
-    _, t, _, _, balance3 = resources(planet)
+    t, _, _, balance3 = resources(planet)
     if balance3 >= gasCost:
         if missionType == "Attack" or missionType == "Spy":
             if galaxy[c1][c2].user == "-" or galaxy[c1][c2].user == planet.user:
@@ -322,7 +323,7 @@ def resources(planet):
     balance3 = int((t - planet.gas[1])*planet.gas_refinery.level*f*power_balance) + planet.gas[0]
     if balance3 >= planet.gas_limit:
         balance3 = planet.gas_limit
-    return f, t, balance, balance2, balance3
+    return t, balance, balance2, balance3
 
 def start(user):
     a = 0
@@ -468,13 +469,13 @@ def start(user):
             else:
                 print("Invalid input")
         elif a == 3:
-            _, t, _, _, balance3 = resources(p)
+            t, _, _, balance3 = resources(p)
             if balance3 >= 500:
                 p.gas[0] = balance3 - 500
                 p.gas[1] = t
                 b = p.coordinates[0]
                 while True:
-                    print("\n{" + str(b+1) + "}")
+                    print("\n{" + str(b+1) + "}\n")
                     for i in range(len(galaxy[b])):
                         print(str(i+1) + "..." + str(galaxy[b][i]))
                     print("What do u wanna do?\n" +
@@ -489,7 +490,7 @@ def start(user):
                             b = len(galaxy) - 1
                     elif a == 2:
                         b += 1
-                        if b > len(galaxy):
+                        if b > len(galaxy) - 1:
                             b = 0
                     elif a == 3:
                         break
@@ -611,7 +612,7 @@ def start(user):
                 print("...Alerts...\n")
                 for i in user.alerts:
                     print(i)
-                del user.alerts[:len(alerts)]
+                del user.alerts[:len(user.alerts)]
             else:
                 print("Invalid input")
         elif a == 6:
