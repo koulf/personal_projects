@@ -478,7 +478,7 @@ def start(user):
                     print("\n{" + str(b+1) + "}\n")
                     for i in range(len(galaxy[b])):
                         print(str(i+1) + "..." + str(galaxy[b][i]))
-                    print("What do u wanna do?\n" +
+                    print("\nWhere  do u wanna go to?\n" +
                           "[1] Previous\n" +
                           "[2] Next\n" +
                           "[3] Go back\n")
@@ -521,25 +521,29 @@ def start(user):
             i = 0
             am = []
             speeds = []
+            amount = list(p.fleet.values())
+            names = list(p.fleet.keys())
             while i < len(p.fleet):
-                amount = p.fleet[list(p.fleet.keys())[i]]
-                if amount > 0:
-                    print("\nHow many " + list(p.fleet.keys())[i] + " u wanna send?\n")
+                if amount[i] > 0:
+                    print("\nHow many " + names[i] + " u wanna send?\n")
                     a = enter()
                     clear()
                     if a < 0:
                         print("Invalid input")
-                        continue
-                    elif a > amount:
+                        i -= 1
+                    elif a > amount[i]:
                         print("U dont have enough ships")
-                        continue
+                        i -= 1
                     else:
                         am.append(a)
                         speeds.append(ships[i].speed)
                 else:
                     am.append(0)
                 i += 1
-            print("what do u wanna do?\n" +
+            if sum(am) == 0:
+                print("So funny a fleet with no ships\n")
+                continue
+            print("\nWhat do u wanna do?\n" +
                   "[1] Attack\n" +
                   "[2] Transport\n" +
                   "[3] Colonize\n" +
