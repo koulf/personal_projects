@@ -7,8 +7,9 @@ import platform
 
 
 #PENDING TASKS
- #Decide whether or not to add motors in speed attribute
- #Decide whether or not to add ships as stored objects, because of the cargo in the missions
+ #Decide whether or not to add motors in speed attribute.
+ #Change class Mission to work as a proccess in order to make them stopable and save mission values.
+ #Add option to enable simple and double travels in class Mission.
 
 
 
@@ -41,9 +42,9 @@ class planet:
         self.gas = [1000,0]
         self.energy = 0
         #Limits
-        self.metal_limit = 1000
-        self.no_metal_limit = 1000
-        self.gas_limit = 1000
+        self.metal_limit = 10000
+        self.no_metal_limit = 10000
+        self.gas_limit = 10000
         #Buildings
         self.metal_mine = building(100, 100)
         self.no_metal_mine = building(100, 100)
@@ -125,7 +126,7 @@ class user:
         return self.username == other.username
 
 class mission(threading.Thread):
-    def __init__(self, duration, missionType, c1, c2, planet, fleet):
+    def __init__(self, duration, missionType, c1, c2, planet, fleet, cargo):
         threading.Thread.__init__(self)
         self.duration = duration
         self.missionType = missionType
@@ -133,6 +134,7 @@ class mission(threading.Thread):
         self.c2 = c2
         self.planet = planet
         self.fleet = fleet
+        self.cargo = cargo
         self.first = 0
     
     def run(self):
@@ -150,6 +152,9 @@ class mission(threading.Thread):
             galaxy[self.c1][self.c2].reclaim(self.planet.user)
             self.planet.user.reclaim(galaxy[self.c1][self.c2])
             self.fleet[2] -= 1
+            galaxy[self.c1][self.c2].metal[0] += self.cargo[1]
+            galaxy[self.c1][self.c2].no_metal[0] += self.cargo[2]
+            galaxy[self.c1][self.c2].gas[0] += self.cargo[3]
             for i in range(len(self.fleet)):
                 galaxy[self.c1][self.c2].fleet[list(self.planet.fleet.keys())[i]] += self.fleet[i]
             self.planet.user.alerts.append("Planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ") taken")
@@ -275,30 +280,34 @@ def do_research(planet, research):
     else:
         print("Insufficient metal")
 
-def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet):
-    t, _, _, balance3 = resources(planet)
-    if balance3 >= gasCost:
+def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet, cargo):
+    t, balance, balance2, balance3 = resources(planet)
+    if balance3 >= (gasCost + cargo[3]):
         if missionType == "Attack" or missionType == "Spy":
             if galaxy[c1][c2].user == "-" or galaxy[c1][c2].user == planet.user:
                 print("Invalid objective")
                 return
-        elif missionType == "Transport":
-            if galaxy[c1][c2].user == "-":
-                print("Invalid objective")
-                return
-        elif missionType == "Colonize":
-            if galaxy[c1][c2].user != "-":
-                print("Planet occupated")
-                return
-            elif fleet[2] == 0:
-                print("U need to send a colonizer")
-                return
+        else:
+            if missionType == "Transport":
+                if galaxy[c1][c2].user == "-":
+                    print("Invalid objective")
+                    return
+            elif missionType == "Colonize":
+                if galaxy[c1][c2].user != "-":
+                    print("Planet occupated")
+                    return
+                elif fleet[2] == 0:
+                    print("U need to send a colonizer")
+                    return
+            planet.metal[0] = balance - cargo[1]
+            planet.metal[1] = planet.no_metal[1] = t
+            planet.no_metal[0] = balance2 - cargo[2]
         #Preparations for mission
-        planet.gas[0] = balance3 - gasCost
+        planet.gas[0] = balance3 - gasCost - cargo[3]
         planet.gas[1] = t
         for i in range(len(fleet)):
             planet.fleet[list(planet.fleet.keys())[i]] -= fleet[i]
-        missions.append(mission(duration, missionType, c1, c2, planet, fleet))
+        missions.append(mission(duration, missionType, c1, c2, planet, fleet, cargo))
         missions[len(missions)-1].start()
         print("Mission started")
     else:
@@ -521,6 +530,7 @@ def start(user):
             i = 0
             am = []
             speeds = []
+            cargo = [0, 0, 0, 0]
             amount = list(p.fleet.values())
             names = list(p.fleet.keys())
             while i < len(p.fleet):
@@ -537,6 +547,8 @@ def start(user):
                     else:
                         am.append(a)
                         speeds.append(ships[i].speed)
+                        cargo[0] = a * ships[i].cargo
+
                 else:
                     am.append(0)
                 i += 1
@@ -562,6 +574,21 @@ def start(user):
             else:
                 m = "Spy"
             minspeed = min(speeds)
+            if m == "Transport" or m == "Colonize":
+                res = list(resources(p))
+                i = 0
+                names = ["metal", "no-metal", "gas"]
+                while i < 3:
+                    print("\nHow much " + names[i] + " u wanna send?\n")
+                    a = enter()
+                    clear()
+                    if a < 0 or a > cargo[0] or a > res[i+1]:
+                        print("Invalid amount")
+                        i -= 1
+                    else:
+                        cargo[0] -= a
+                        cargo[i+1] = a
+                    i += 1
             if p.coordinates[0] == (s-1):
                 distance = abs(p.coordinates[1] - (pl - 1))
             else:
@@ -575,11 +602,12 @@ def start(user):
             print("Distance: " + str(distance))
             print("Gas cost: " + str(distance * 100))
             print("Duration: " + str(int((distance / minspeed) * 60)))
+            print("Cargo:    " + str(cargo[1:]))
             print("Mission: " + m + "\n")
             a = enter()
             clear()
             if a == 1:
-                exec_mission(s-1, pl-1, am, m, distance*100, int((distance / minspeed) * 60), p)
+                exec_mission(s-1, pl-1, am, m, distance*100, int((distance / minspeed) * 60), p, cargo)
             elif a == 0:
                 print("Any change made")
             else:
@@ -636,6 +664,9 @@ def start(user):
             p.rename(a)
             clear()
         elif a == 8:
+            # if len(missions) != 0:
+            #     print("Some executed missions where killed")
+            #     for i in missions:
             break
         else:
             print("Invalid input")
