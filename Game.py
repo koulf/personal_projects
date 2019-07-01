@@ -55,7 +55,7 @@ class planet:
         self.gas_tank = building(500, 500)
         self.shipyard = building(1000, 1000)
         #Fleet
-        self.fleet = {"Battleship":0, "Hunter":0, "Colonizer":1, "Spy":0, "Cargoship":0}
+        self.fleet = [0, 0, 1, 0, 0]
     def __repr__(self):
     	return "(" + str(self.planetType) + ", " + str(self.user) + ", " + str(self.name) + ")"
     def reclaim(self, user):
@@ -65,7 +65,7 @@ class planet:
         self.no_metal[1] = t
         self.gas[1] = t
     def add_fleet(self, ship, amount):
-        self.fleet[ship] += amount
+        self.fleet[ship.id] += amount
     def rename(self, name):
         self.name = name
 
@@ -95,7 +95,7 @@ class research:
 class ship:
     def __init__(self, name, attack, structure, speed, cargo, metal_cost, no_metal_cost, gas_cost):
         #Features
-        self.name = name
+        self.id = id
         self.attack = attack
         self.structure = structure
         self.speed = speed
@@ -124,7 +124,6 @@ class user:
 
     def __eq__(self, other):
         return self.username == other.username
-
 class mission(threading.Thread):
     def __init__(self, duration, missionType, c1, c2, planet, fleet, cargo):
         threading.Thread.__init__(self)
@@ -135,15 +134,26 @@ class mission(threading.Thread):
         self.planet = planet
         self.fleet = fleet
         self.cargo = cargo
-        self.first = 0
+        self.second = 0
     
     def run(self):
         if self.missionType == "Attack":
             self.planet.user.alerts.append("Coming soon")
         elif self.missionType == "Transport":
+            self.second = self.duration
             while self.duration > 0:
                 self.duration -= 1
                 time.sleep(1)
+            galaxy[self.c1][self.c2].metal[0] += self.cargo[1]
+            galaxy[self.c1][self.c2].no_metal[0] += self.cargo[2]
+            galaxy[self.c1][self.c2].gas[0] += self.cargo[3]
+            self.planet.user.alerts.append("Cargo received in planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ")")
+            while self.second > 0:
+                self.second -= 1
+                time.sleep(1)
+            for i in range(len(self.fleet)):
+                self.planet.fleet[i] += self.fleet[i]
+            self.planet.user.alerts.append("Fleet returned")
         elif self.missionType == "Colonize":
             while self.duration > 0:
                 self.duration -= 1
@@ -156,7 +166,7 @@ class mission(threading.Thread):
             galaxy[self.c1][self.c2].no_metal[0] += self.cargo[2]
             galaxy[self.c1][self.c2].gas[0] += self.cargo[3]
             for i in range(len(self.fleet)):
-                galaxy[self.c1][self.c2].fleet[list(self.planet.fleet.keys())[i]] += self.fleet[i]
+                galaxy[self.c1][self.c2].fleet[i] += self.fleet[i]
             self.planet.user.alerts.append("Planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ") taken")
         elif self.missionType == "Spy":
             self.planet.user.alerts.append("Coming soon")
@@ -226,15 +236,15 @@ def build(planet, building):
         print("Insufficient metal")
 
 def build_fleet(planet, user, ship, amount):
-    if ship.name == "Battleship" and (planet.shipyard.level < 1 or user.weapon.level < 2 or user.structure.level < 2 or user.motor.level < 2):
+    if ship.id == 0 and (planet.shipyard.level < 1 or user.weapon.level < 2 or user.structure.level < 2 or user.motor.level < 2):
         print("Unfulfilled requirement")
-    elif ship.name == "Hunter" and (planet.shipyard.level < 5 or user.weapon.level < 5 or user.structure.level < 5 or user.motor.level < 5):
+    elif ship.id == 1 and (planet.shipyard.level < 5 or user.weapon.level < 5 or user.structure.level < 5 or user.motor.level < 5):
         print("Unfulfilled requirement")
-    elif ship.name == "Colonizer" and (planet.shipyard.level < 4 or user.colonize.level < 1 or user.structure.level < 4 or user.motor.level < 4):
+    elif ship.id == 2 and (planet.shipyard.level < 4 or user.colonize.level < 1 or user.structure.level < 4 or user.motor.level < 4):
         print("Unfulfilled requirement")
-    elif ship.name == "Spy" and (planet.shipyard.level < 3 or user.spying.level < 1 or user.structure.level < 2 or user.motor.level < 3):
+    elif ship.id == 3 and (planet.shipyard.level < 3 or user.spying.level < 1 or user.structure.level < 2 or user.motor.level < 3):
         print("Unfulfilled requirement")
-    elif ship.name == "Cargoship" and (planet.shipyard.level < 3 or user.structure.level < 4 or user.motor.level < 3):
+    elif ship.id == 4 and (planet.shipyard.level < 3 or user.structure.level < 4 or user.motor.level < 3):
         print("Unfulfilled requirement")
     else:
         t, balance, balance2, balance3 = resources(planet)
@@ -245,7 +255,7 @@ def build_fleet(planet, user, ship, amount):
                     planet.no_metal[0] = balance2 - ship.no_metal_cost
                     planet.gas[0] = balance3 - ship.gas_cost
                     planet.metal[1] = planet.no_metal[1] = planet.gas[1] = t
-                    planet.add_fleet(ship.name, amount)
+                    planet.add_fleet(ship, amount)
                     print("Fleet was built")
                 else:
                     print("Insufficient gas")
@@ -306,7 +316,7 @@ def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet, cargo):
         planet.gas[0] = balance3 - gasCost - cargo[3]
         planet.gas[1] = t
         for i in range(len(fleet)):
-            planet.fleet[list(planet.fleet.keys())[i]] -= fleet[i]
+            planet.fleet[i] -= fleet[i]
         missions.append(mission(duration, missionType, c1, c2, planet, fleet, cargo))
         missions[len(missions)-1].start()
         print("Mission started")
@@ -420,7 +430,7 @@ def start(user):
                 elif a == 4:
                     ship = spy
                     req = "Requirements: Shipyard level 3, Spying level 1, Structure level 2, Motor level 3"
-                elif a == 4:
+                elif a == 5:
                     ship = cargoship
                     req = "Requirements: Shipyard level 3, Structure level 4, Motor level 3"
                 else:
@@ -509,7 +519,7 @@ def start(user):
             else:
                 print("Insufficient gas")
         elif a == 4:
-            if sum(p.fleet.values()) == 0:
+            if sum(p.fleet) == 0:
                 print("U dont have a fleet in this planet")
                 continue
             print("What system u wanna go to?\n")
@@ -531,24 +541,21 @@ def start(user):
             am = []
             speeds = []
             cargo = [0, 0, 0, 0]
-            amount = list(p.fleet.values())
-            names = list(p.fleet.keys())
             while i < len(p.fleet):
-                if amount[i] > 0:
-                    print("\nHow many " + names[i] + " u wanna send?\n")
+                if p.fleet[i] > 0:
+                    print("\nHow many " + ship_names[i] + " u wanna send?\n")
                     a = enter()
                     clear()
                     if a < 0:
                         print("Invalid input")
                         i -= 1
-                    elif a > amount[i]:
+                    elif a > p.fleet[i]:
                         print("U dont have enough ships")
                         i -= 1
                     else:
                         am.append(a)
                         speeds.append(ships[i].speed)
                         cargo[0] = a * ships[i].cargo
-
                 else:
                     am.append(0)
                 i += 1
@@ -597,7 +604,7 @@ def start(user):
             print("Destiny: (" + str(s) + ", " + str(pl) + ")")
             st = "Fleet: "
             for i in range(len(p.fleet)):
-                st += str(am[i]) + " " +  list(p.fleet.keys())[i] + ", "
+                st += str(am[i]) + " " +  ship_names[i] + ", "
             print(st[:len(st)-2])
             print("Distance: " + str(distance))
             print("Gas cost: " + str(distance * 100))
@@ -639,7 +646,10 @@ def start(user):
                       "Colonize   " + str(user.colonize.level) + "\n" +
                       "Spying     " + str(user.spying.level) + "\n")
             elif a == 4:
-                print(p.fleet)
+                st = "Fleet: "
+                for i in range(len(p.fleet)):
+                    st += str(p.fleet[i]) + " " +  ship_names[i] + ", "
+                print(st[:len(st)-2])
             elif a == 5:
                 print("...Alerts...\n")
                 for i in user.alerts:
@@ -699,12 +709,13 @@ u = user("reluro", "kk12345")
 rand_assign(u)
 #Objects of class
 #Ships
-battleship = ship("Battleship", 100, 1_000, .5, 100, 500, 500, 300)
-hunter = ship("Hunter", 1_000, 5_000, 1, 1_000, 2_000, 2_000, 1_500)
-colonizer = ship("Colonizer", 0, 2_500, 1/3, 3_000, 20_000, 20_000, 15_000)
-spy = ship("Spy", 0, 500, 12, 0, 3_000, 0, 1_000)
-cargoship = ship("Cargoship", 100, 5_000, .2, 15_000, 2_000, 2_000, 2_000)
+battleship = ship(0, 100, 1_000, .5, 100, 500, 500, 300)
+hunter = ship(1, 1_000, 5_000, 1, 1_000, 2_000, 2_000, 1_500)
+colonizer = ship(2, 0, 2_500, 1/3, 3_000, 20_000, 20_000, 15_000)
+spy = ship(3, 0, 500, 12, 0, 3_000, 0, 1_000)
+cargoship = ship(4, 100, 5_000, .2, 15_000, 2_000, 2_000, 2_000)
 ships = [battleship, hunter, colonizer, cargoship, spy]
+ship_names = ["Battleship", "Hunter", "Colonizer", "Spy", "Cargoship"]
 cl = False
 clr = platform.system()
 print("U wanna be refreshing the screen? [0] yes | [\"whatever\"] no")
