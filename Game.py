@@ -122,8 +122,6 @@ class user:
     def __repr__(self):
         return self.username
 
-    def __eq__(self, other):
-        return self.username == other.username
 class mission(threading.Thread):
     def __init__(self, duration, missionType, c1, c2, planet, fleet, cargo):
         threading.Thread.__init__(self)
@@ -135,7 +133,6 @@ class mission(threading.Thread):
         self.fleet = fleet
         self.cargo = cargo
         self.second = 0
-    
     def run(self):
         if self.missionType == "Attack":
             self.planet.user.alerts.append("Coming soon")
@@ -294,7 +291,10 @@ def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet, cargo):
     t, balance, balance2, balance3 = resources(planet)
     if balance3 >= (gasCost + cargo[3]):
         if missionType == "Attack" or missionType == "Spy":
-            if galaxy[c1][c2].user == "-" or galaxy[c1][c2].user == planet.user:
+            if galaxy[c1][c2].user == "-":
+                print("Invalid objective")
+                return
+            elif galaxy[c1][c2].user == planet.user:
                 print("Invalid objective")
                 return
         else:
