@@ -133,21 +133,34 @@ class mission(threading.Thread):
         self.fleet = fleet
         self.cargo = cargo
         self.second = 0
+        self.proceed = True
+
+    def prepare(self):
+        self.proceed = 0
+        x = self.duration
+        self.duration = 0
+        while self.proceed == 0:
+            pass
+        self.duration = x
+
+    def elapse(self):
+        while self.duration > 0:
+            self.duration -= 1
+            time.sleep(1)
+        return self.proceed
+
     def run(self):
         if self.missionType == "Attack":
             self.planet.user.alerts.append("Coming soon")
         elif self.missionType == "Transport":
             self.second = self.duration
-            while self.duration > 0:
-                self.duration -= 1
-                time.sleep(1)
+            if not self.elapse():
+                return
             galaxy[self.c1][self.c2].metal[0] += self.cargo[1]
             galaxy[self.c1][self.c2].no_metal[0] += self.cargo[2]
             galaxy[self.c1][self.c2].gas[0] += self.cargo[3]
             self.planet.user.alerts.append("Cargo received in planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ")")
-            while self.second > 0:
-                self.second -= 1
-                time.sleep(1)
+
             for i in range(len(self.fleet)):
                 self.planet.fleet[i] += self.fleet[i]
             self.planet.user.alerts.append("Fleet returned")
@@ -164,7 +177,7 @@ class mission(threading.Thread):
             galaxy[self.c1][self.c2].gas[0] += self.cargo[3]
             for i in range(len(self.fleet)):
                 galaxy[self.c1][self.c2].fleet[i] += self.fleet[i]
-            self.planet.user.alerts.append("Planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ") taken")
+            self.planet.user.alerts.append("Planet (" + str(self.c1 + 1) + ", " + str(self.c2 + 1) + ") taken")
         elif self.missionType == "Spy":
             self.planet.user.alerts.append("Coming soon")
         missions.remove(self)
@@ -295,7 +308,7 @@ def exec_mission(c1, c2, fleet, missionType, gasCost, duration, planet, cargo):
                 print("Invalid objective")
                 return
             elif galaxy[c1][c2].user == planet.user:
-                print("Invalid objective")
+                print("U cant attack urself")
                 return
         else:
             if missionType == "Transport":
