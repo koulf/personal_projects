@@ -8,8 +8,6 @@ import platform
 
 #PENDING TASKS
  #Decide whether or not to add motors in speed attribute.
- #Change class Mission to work as a proccess in order to make them stopable and save mission values.
- #Add option to enable simple and double travels in class Mission.
 
 
 
@@ -139,13 +137,22 @@ class mission(threading.Thread):
         self.proceed = 0
         x = self.duration
         self.duration = 0
-        while self.proceed == 0:
+        y = self.second
+        self.second = 0
+        while self.proceed == 0 or second == 0:
             pass
         self.duration = x
+        self.second = y
 
     def elapse(self):
         while self.duration > 0:
             self.duration -= 1
+            time.sleep(1)
+        return self.proceed
+    
+    def elapse2(self):
+        while self.second > 0:
+            self.second -= 1
             time.sleep(1)
         return self.proceed
 
@@ -160,14 +167,14 @@ class mission(threading.Thread):
             galaxy[self.c1][self.c2].no_metal[0] += self.cargo[2]
             galaxy[self.c1][self.c2].gas[0] += self.cargo[3]
             self.planet.user.alerts.append("Cargo received in planet (" + str(self.c1+1) + ", " + str(self.c2+1) + ")")
-
+            if not self.elapse2():
+                return
             for i in range(len(self.fleet)):
                 self.planet.fleet[i] += self.fleet[i]
             self.planet.user.alerts.append("Fleet returned")
         elif self.missionType == "Colonize":
-            while self.duration > 0:
-                self.duration -= 1
-                time.sleep(1)
+            if not self.elapse():
+                return
             available.remove([self.c1, self.c2])
             galaxy[self.c1][self.c2].reclaim(self.planet.user)
             self.planet.user.reclaim(galaxy[self.c1][self.c2])
@@ -364,6 +371,7 @@ def start(user):
     while True:
         print("\nPlanet " + "(" + str(p.coordinates[0]+1) + ", " + str(p.coordinates[1]+1) + "): " + p.name)
         print("Missions:  " + str(len(missions)) + "\n")
+        print("Alerts:  " + str(len(user.alerts)) + "\n")
         print("What do u wanna do?\n" +
               "[1] Build\n" +
               "[2] Research\n" +
