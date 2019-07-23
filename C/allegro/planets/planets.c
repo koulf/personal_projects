@@ -14,22 +14,13 @@ enum MYKEYS
    KEY_UP, KEY_DOWN, KEY_LEFT, KEY_RIGHT
 };
 
-int main2()
-{
-	int f = open("pictures/1.png", O_RDONLY);
-	printf("%d\n", f);
-	close(f);
-	return 0;
-}
-
 int main(int argc, char **argv)
 {
    ALLEGRO_DISPLAY *display = NULL;
    ALLEGRO_EVENT_QUEUE *event_queue = NULL;
    ALLEGRO_TIMER *timer = NULL;
    ALLEGRO_BITMAP *bouncer = NULL;
-   float bouncer_x = SCREEN_W / 2.0 - BOUNCER_SIZE / 2.0;
-   float bouncer_y = SCREEN_H / 2.0 - BOUNCER_SIZE / 2.0;
+   float x = 200;
    bool key[4] = { false, false, false, false };
    bool redraw = true;
    bool doexit = false;
@@ -37,6 +28,12 @@ int main(int argc, char **argv)
    if(!al_init()) {
       fprintf(stderr, "failed to initialize allegro!\n");
       return -1;
+   }
+
+   if(!al_init_image_addon()) {
+      al_show_native_message_box(display, "Error", "Error", "Failed to initialize al_init_image_addon!", 
+                                 NULL, ALLEGRO_MESSAGEBOX_ERROR);
+      return 0;
    }
  
    if(!al_install_keyboard()) {
@@ -75,8 +72,8 @@ int main(int argc, char **argv)
       return 0;
    }
 
-    bouncer = al_load_bitmap("pictures/sel.png");
-	if(!image2)
+   bouncer = al_load_bitmap("pictures/sel.png");
+	if(!bouncer)
 	{
       al_show_native_message_box(display, "Error", "Error", "Failed to load image 3!", 
                                  NULL, ALLEGRO_MESSAGEBOX_ERROR);
@@ -99,8 +96,10 @@ int main(int argc, char **argv)
 
    al_clear_to_color(al_map_rgb(0,0,0));
 
-   al_draw_scaled_bitmap(image, 0, 0, al_get_bitmap_width(image), al_get_bitmap_height(image), 0, 0, 100, 100, 0);
+   al_draw_scaled_bitmap(image, 0, 0, al_get_bitmap_width(image), al_get_bitmap_height(image), 200, 200, 100, 100, 0);
    al_draw_scaled_bitmap(image2, 0, 0, al_get_bitmap_width(image2), al_get_bitmap_height(image2), 350, 200, 100, 100, 0);
+
+   al_draw_bitmap(bouncer, x, 200, 0);
  
    al_flip_display();
  
@@ -113,85 +112,61 @@ int main(int argc, char **argv)
  
       if(ev.type == ALLEGRO_EVENT_TIMER)
       {
-         if(key[KEY_UP] && bouncer_y >= 4.0) {
-            bouncer_y -= 4.0;
-         }
-
-         if(key[KEY_DOWN] && bouncer_y <= SCREEN_H - BOUNCER_SIZE - 4.0) {
-            bouncer_y += 4.0;
-         }
-
-         if(key[KEY_LEFT] && bouncer_x >= 4.0) {
-            bouncer_x -= 4.0;
-         }
-
-         if(key[KEY_RIGHT] && bouncer_x <= SCREEN_W - BOUNCER_SIZE - 4.0) {
-            bouncer_x += 4.0;
-         }
-
+         if(key[KEY_LEFT] && x >= 350)
+            x -= 150;
+         if(key[KEY_RIGHT] && x <= 200)
+            x += 150;
+         
          redraw = true;
       }
       else if(ev.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
          break;
       }
-      else if(ev.type == ALLEGRO_EVENT_KEY_DOWN) {
-         switch(ev.keyboard.keycode) {
-            case ALLEGRO_KEY_UP:
-               key[KEY_UP] = true;
-               break;
-
-            case ALLEGRO_KEY_DOWN:
-               key[KEY_DOWN] = true;
-               break;
-
+      else if(ev.type == ALLEGRO_EVENT_KEY_DOWN)
+      {
+         switch(ev.keyboard.keycode)
+         {
             case ALLEGRO_KEY_LEFT: 
                key[KEY_LEFT] = true;
                break;
-
             case ALLEGRO_KEY_RIGHT:
                key[KEY_RIGHT] = true;
                break;
          }
       }
-      else if(ev.type == ALLEGRO_EVENT_KEY_UP) {
-         switch(ev.keyboard.keycode) {
-            case ALLEGRO_KEY_UP:
-               key[KEY_UP] = false;
-               break;
-
-            case ALLEGRO_KEY_DOWN:
-               key[KEY_DOWN] = false;
-               break;
-
+      else if(ev.type == ALLEGRO_EVENT_KEY_UP)
+      {
+         switch(ev.keyboard.keycode)
+         {
             case ALLEGRO_KEY_LEFT: 
                key[KEY_LEFT] = false;
                break;
-
             case ALLEGRO_KEY_RIGHT:
                key[KEY_RIGHT] = false;
                break;
-
             case ALLEGRO_KEY_ESCAPE:
                doexit = true;
                break;
          }
       }
  
-      if(redraw && al_is_event_queue_empty(event_queue))
-	  {
-		redraw = false;
+   if(redraw && al_is_event_queue_empty(event_queue))
+	{
+      redraw = false;
 		al_clear_to_color(al_map_rgb(0,0,0));
-		  
+		
 		al_draw_scaled_bitmap(image, 0, 0, al_get_bitmap_width(image), al_get_bitmap_height(image), 200, 200, 100, 100, 0);
 		al_draw_scaled_bitmap(image2, 0, 0, al_get_bitmap_width(image2), al_get_bitmap_height(image2), 350, 200, 100, 100, 0);
 
-        al_draw_bitmap(bouncer, bouncer_x, bouncer_y, 0);
+      al_draw_bitmap(bouncer, x, 200, 0);
  
-        al_flip_display();
+      al_flip_display();
       }
    }
  
    al_destroy_bitmap(bouncer);
+   al_destroy_bitmap(image);
+   al_destroy_bitmap(image2);
    al_destroy_timer(timer);
    al_destroy_display(display);
    al_destroy_event_queue(event_queue);
